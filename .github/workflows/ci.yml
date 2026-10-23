@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm test
+      - run: npm run build
+      - run: npm run test:production
+      - run: docker compose -f compose.yaml -f compose.build.yaml config --quiet
+      - run: docker build -t mystuff:test .
+      - name: Scan container
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: mystuff:test
+          format: table
+          exit-code: 1
+          severity: CRITICAL
+          ignore-unfixed: true

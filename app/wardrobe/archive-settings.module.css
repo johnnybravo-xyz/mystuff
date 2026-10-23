@@ -1,0 +1,81 @@
+.panel {
+  max-width: 780px;
+  margin-top: 32px;
+  padding: 28px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+}
+.heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  margin-bottom: 26px;
+}
+.icon {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  color: var(--primary);
+  background: var(--secondary);
+}
+.heading h2 {
+  font-size: 17px;
+  font-weight: 800;
+  margin: 1px 0 8px;
+}
+.heading p,
+.control p {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.8;
+}
+.control {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  padding-top: 23px;
+  border-top: 1px solid var(--border);
+}
+.control > input {
+  margin-top: 3px;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  accent-color: var(--primary);
+}
+.control label {
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+.control p {
+  max-width: 580px;
+  margin-top: 8px;
+}
+.status,
+.error {
+  display: block;
+  font-size: 12px;
+  line-height: 1.8;
+  margin-top: 16px;
+}
+.status {
+  color: var(--muted-foreground);
+}
+.error {
+  color: #b8423f;
+}
+@media (max-width: 600px) {
+  .panel {
+    margin-top: 22px;
+    padding: 20px;
+  }
+  .heading {
+    gap: 12px;
+  }
+}

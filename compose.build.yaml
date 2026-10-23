@@ -1,0 +1,7 @@
+services:
+  app:
+    build:
+      context: .
+      args:
+        VERSION: ${MYSTUFF_VERSION:-dev}
+    image: mystuff:local

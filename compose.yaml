@@ -1,0 +1,21 @@
+services:
+  app:
+    image: ${MYSTUFF_IMAGE:-ghcr.io/johnnybravo-xyz/mystuff:1.0.0}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      ARCHIVE_DATA_DIR: /data
+      MYSTUFF_PUBLIC_URL: ${MYSTUFF_PUBLIC_URL:-}
+      VINEXT_TRUSTED_HOSTS: ${VINEXT_TRUSTED_HOSTS:-}
+    volumes:
+      - mystuff-data:/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+
+volumes:
+  mystuff-data:
