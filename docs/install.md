@@ -12,10 +12,16 @@
 mkdir my-stuff && cd my-stuff
 curl -O https://raw.githubusercontent.com/johnnybravo-xyz/mystuff/main/compose.yaml
 docker compose up -d
-docker compose logs app
+docker compose exec app mystuff setup-token
 ```
 
-Open `http://127.0.0.1:3000/setup?token=…` using the one-time token from the logs. Setup stores only the token digest and invalidates it when setup completes. If the link is lost before completion:
+Open `http://127.0.0.1:3000/setup?token=…` using the printed token. The container also logs the link as an `installation.setup.ready` event on every start until setup completes:
+
+```sh
+docker compose logs app | grep setup.ready
+```
+
+The token survives container restarts. It is kept in `/data/secrets/setup.token` (mode 0600, next to `session.key`) with its digest in the database, and both are removed when setup completes. Deleting the volume creates a new installation with a new token, so a browser tab opened before that will be rejected on its first step. To invalidate a link that may have leaked:
 
 ```sh
 docker compose exec app mystuff setup-token --rotate
@@ -46,5 +52,15 @@ git clone https://github.com/johnnybravo-xyz/mystuff.git
 cd mystuff
 docker compose -f compose.yaml -f compose.build.yaml up -d --build
 ```
+
+Without Compose:
+
+```sh
+docker build -t mystuff .
+docker run -d --name mystuff -p 127.0.0.1:3000:3000 -v mystuff-data:/data mystuff
+docker exec mystuff mystuff setup-token
+```
+
+Replace `docker compose exec app` with `docker exec mystuff` in the other commands in these docs.
 
 Pin an image tag or digest in `MYSTUFF_IMAGE` before production upgrades. Do not run more than one application process against the same `/data` volume.

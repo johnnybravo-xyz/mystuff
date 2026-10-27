@@ -31,7 +31,7 @@ A non-empty target is rejected. To replace an existing database and images, pres
 docker compose run --rm app mystuff restore --replace /data/backups/my-stuff.tar.gz
 ```
 
-Restore preserves the administrator password hash and inventory. It does not restore `/data/secrets/session.key`, so existing browser sessions are signed out when restoring into a new volume.
+Restore preserves the administrator password hash and inventory. It does not restore `/data/secrets/session.key` or a pending `/data/secrets/setup.token`, so existing browser sessions are signed out when restoring into a new volume, and an unfinished setup gets a new link on the next start.
 
 ## Image audit
 

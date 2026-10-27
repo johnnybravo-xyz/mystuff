@@ -4,7 +4,7 @@ A fresh built-in-login installation needs no secret environment variables.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `ARCHIVE_DATA_DIR` | `/data` in the container | Database, images, session key, and migration backups. |
+| `ARCHIVE_DATA_DIR` | `/data` in the container, `./data` in a source checkout | Database, images, session key, pending setup token, and migration backups. Used by both the server and the `mystuff` CLI. |
 | `HOST` | `0.0.0.0` | Listen address in the container. |
 | `PORT` | `3000` | HTTP listen port. |
 | `MYSTUFF_PUBLIC_URL` | unset | Canonical HTTPS origin required to enable the public shop. |

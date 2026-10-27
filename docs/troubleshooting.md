@@ -3,11 +3,14 @@
 ## Setup URL is missing
 
 ```sh
-docker compose logs app
-docker compose exec app mystuff setup-token --rotate
+docker compose exec app mystuff setup-token
 ```
 
-Rotation works only before setup completes.
+The link is also logged on every container start (`docker compose logs app | grep setup.ready`). Both work only before setup completes.
+
+## "This setup token is not current"
+
+The link belongs to an older installation, usually because the `/data` volume was deleted or recreated, or because the token was rotated. Print the current link with `mystuff setup-token` and open it in place of the old tab. Use `mystuff setup-token --rotate` only to invalidate a link that may have leaked.
 
 ## Permission denied under `/data`
 
