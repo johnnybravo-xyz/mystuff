@@ -58,30 +58,30 @@ Use built-in authentication unless you already operate a trusted forward-auth se
 
 ## Developer quick start
 
-You need Node 24 or newer. Docker is only needed for container builds.
+You need Node 24 or newer, which runs the app, and Bun 1.4.3, which installs packages and runs scripts. Docker is only needed for container builds.
 
 ```sh
 git clone https://github.com/johnnybravo-xyz/mystuff.git
 cd mystuff
-npm ci
-npm run dev -- --host 127.0.0.1
+bun install
+bun run dev --host 127.0.0.1
 ```
 
 1. The dev server prints a setup link as soon as it starts (an `installation.setup.ready` event). Open `http://127.0.0.1:5173` followed by that path.
 2. Complete the wizard and sign in with the password you chose. Adding demo items under Features gives you something to click on.
-3. Lost the link? Run `npm run setup-link` from another terminal.
+3. Lost the link? Run `bun run setup-link` from another terminal.
 
 Development data lives in `./data` (git-ignored): the SQLite database, photos, and `secrets/`. The `mystuff` CLI uses the same folder, so `node scripts/mystuff.mjs backup data/backups/dev.tar.gz` and the other commands work without extra settings. To start over with a fresh installation, stop the dev server and remove `./data`.
 
-For quick UI work, `ARCHIVE_LOCAL_PREVIEW=1 npm run dev -- --host 127.0.0.1` browses as the owner on `localhost` without signing in. It also skips the redirect to setup, so finish setup first if you want your own settings. It works only in development on a loopback host, never in production builds.
+For quick UI work, `ARCHIVE_LOCAL_PREVIEW=1 bun run dev --host 127.0.0.1` browses as the owner on `localhost` without signing in. It also skips the redirect to setup, so finish setup first if you want your own settings. It works only in development on a loopback host, never in production builds.
 
 Before opening a pull request:
 
 ```sh
-npx tsc --noEmit
-npm test
-npm run build
-npm run test:production
+bunx tsc --noEmit
+bun run test
+bun run build
+bun run test:production
 ```
 
 Build and run the container from your checkout:

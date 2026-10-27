@@ -24,7 +24,7 @@ test(
         const entry = resolve('dist/standalone/server.js');
         await access(entry).catch(() => {
             throw new Error(
-                'Run npm run build before npm run test:production.',
+                'Run bun run build before bun run test:production.',
             );
         });
         const directory = await mkdtemp(join(tmpdir(), 'mystuff-auth-test-'));

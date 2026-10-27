@@ -2,6 +2,7 @@
   "name": "mystuff",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "bun@1.4.3",
   "bin": {
     "mystuff": "scripts/mystuff.mjs"
   },
@@ -57,5 +58,8 @@
     "typescript": "5.9.3",
     "vite": "8.3.5"
   },
+  "trustedDependencies": [
+    "argon2"
+  ],
   "type": "module"
 }

@@ -1,14 +1,16 @@
 # Contributing
 
-Use Node 24 or newer. Keep changes small, explicit, and easy to test. Do not add real inventory, private hostnames, credentials, setup URLs, or personal deployment history.
+Use Node 24 or newer to run the app and Bun 1.4.3 (pinned in `package.json`) to install packages and run scripts. Keep changes small, explicit, and easy to test. Do not add real inventory, private hostnames, credentials, setup URLs, or personal deployment history.
 
 ```sh
-npm ci
-npx tsc --noEmit
-npm test
-npm run build
-npm run test:production
+bun install --frozen-lockfile
+bunx tsc --noEmit
+bun run test
+bun run build
+bun run test:production
 ```
+
+Use `bun run test`, not `bun test`: the test script runs Node's test runner, while `bun test` starts Bun's own runner. Commit `bun.lock`; do not add a `package-lock.json`.
 
 For container changes, also run:
 

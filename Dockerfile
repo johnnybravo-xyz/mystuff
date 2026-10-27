@@ -1,11 +1,21 @@
+# Bun installs packages and runs build scripts; Node 24 runs the app.
+FROM oven/bun:1.4.3 AS bun
+
 FROM node:24-bookworm-slim AS dependencies
+COPY --from=bun /usr/local/bin/bun /usr/local/bin/bun
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 
 FROM dependencies AS build
 COPY . .
-RUN npm run build
+RUN bun run build
+
+FROM node:24-bookworm-slim AS production-dependencies
+COPY --from=bun /usr/local/bin/bun /usr/local/bin/bun
+WORKDIR /app
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile --production
 
 FROM node:24-bookworm-slim AS runtime
 ARG VERSION=0.1.0
@@ -18,10 +28,8 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 ENV NODE_ENV=production HOST=0.0.0.0 PORT=3000 ARCHIVE_DATA_DIR=/data MYSTUFF_VERSION=$VERSION
-COPY package*.json ./
-RUN npm ci --omit=dev --ignore-scripts \
-    && npm rebuild argon2 \
-    && npm cache clean --force
+COPY package.json ./
+COPY --from=production-dependencies /app/node_modules ./node_modules
 COPY --from=build /app/dist/standalone ./
 COPY scripts/mystuff.mjs scripts/start.mjs /app/scripts/
 RUN chmod 0755 /app/scripts/mystuff.mjs \

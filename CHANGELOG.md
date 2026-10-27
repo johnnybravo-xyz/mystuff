@@ -9,7 +9,8 @@ All notable changes are recorded here. The project follows Semantic Versioning. 
 - The setup link is printed when the container starts and stays valid across restarts until setup completes. `mystuff setup-token` prints it again; `--rotate` still replaces it.
 - The setup wizard checks the token on its first step and validates each step before continuing, including password confirmation, region values, profile labels, collections, and public shop prerequisites.
 - The setup wizard replaces the informational first-item and backup steps with a review step. Demo items moved to Features. The wizard no longer shows shell commands or environment variable names; an expired or missing setup link gets a plain-language explanation.
-- `npm run dev` prints the setup link at startup, `npm run setup-link` prints it again, and the `mystuff` CLI defaults to `./data` outside the container, matching the server.
+- Bun 1.4.3 replaces npm for installing packages and running scripts (`bun.lock` replaces `package-lock.json`); Node 24 still runs the app.
+- `bun run dev` prints the setup link at startup, `bun run setup-link` prints it again, and the `mystuff` CLI defaults to `./data` outside the container, matching the server.
 - Headings use Fraunces and body text uses Nunito Sans for a softer look.
 
 ## [0.1.0] - 2026-10-23

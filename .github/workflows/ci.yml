@@ -16,12 +16,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: npm
-      - run: npm ci
-      - run: npx tsc --noEmit
-      - run: npm test
-      - run: npm run build
-      - run: npm run test:production
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.3
+      - run: bun install --frozen-lockfile
+      - run: bunx tsc --noEmit
+      # `bun run test` runs the package script on Node; `bun test` is Bun's own runner.
+      - run: bun run test
+      - run: bun run build
+      - run: bun run test:production
       - run: docker compose -f compose.yaml -f compose.build.yaml config --quiet
       - run: docker build -t mystuff:test .
       - name: Scan container
