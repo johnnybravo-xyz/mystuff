@@ -1,5 +1,11 @@
 import { createHash, createHmac, randomBytes, randomUUID } from 'node:crypto';
-import { chmodSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { hash, verify, argon2id } from 'argon2';
 import { dataDirectory, getDb } from '@/db';
@@ -50,7 +56,7 @@ const setupCollectionIds = collections.filter(
   (collection): collection is Exclude<Collection, 'all'> =>
     collection !== 'all',
 );
-let processSetupToken: string | null = null;
+let setupLinkLogged = false;
 let processSessionKey: Buffer | null = null;
 
 export const defaultInstallationSettings: InstallationSettings = {
@@ -245,29 +251,60 @@ export async function setupRequired() {
   return installationRow().setup_complete !== 1;
 }
 
+function setupTokenPath() {
+  return resolve(dataDirectory(), 'secrets', 'setup.token');
+}
+
+// The plaintext token lives beside session.key so restarts keep the same link.
+// It is valid only while its digest matches the database row.
+function storedSetupToken(expectedDigest: string | null) {
+  if (!expectedDigest) return null;
+  try {
+    const token = readFileSync(setupTokenPath(), 'utf8').trim();
+    return digest(token) === expectedDigest ? token : null;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+    return null;
+  }
+}
+
 export async function ensureSetupClaim() {
   const row = installationRow();
   if (row.setup_complete === 1) return null;
-  if (!processSetupToken) {
-    processSetupToken = randomBytes(32).toString('base64url');
+  let token = storedSetupToken(row.setup_token_digest);
+  if (!token) {
+    token = randomBytes(32).toString('base64url');
+    const path = setupTokenPath();
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(path, token, { mode: 0o600 });
+    chmodSync(path, 0o600);
+    const now = new Date().toISOString();
     getDb()
       .connection.prepare(
         'UPDATE installations SET setup_token_digest=?,setup_token_created_at=?,updated_at=? WHERE id=? AND setup_complete=0',
       )
-      .run(
-        digest(processSetupToken),
-        new Date().toISOString(),
-        new Date().toISOString(),
-        installationId,
-      );
+      .run(digest(token), now, now, installationId);
+    console.info(JSON.stringify({ event: 'installation.setup.token_created' }));
+  }
+  if (!setupLinkLogged) {
+    setupLinkLogged = true;
     console.info(
       JSON.stringify({
         event: 'installation.setup.ready',
-        setupPath: `/setup?token=${processSetupToken}`,
+        setupPath: `/setup?token=${token}`,
       }),
     );
   }
-  return processSetupToken;
+  return token;
+}
+
+export async function verifySetupToken(token: string) {
+  const row = installationRow();
+  return (
+    row.setup_complete !== 1 &&
+    Boolean(row.setup_token_digest) &&
+    digest(token) === row.setup_token_digest
+  );
 }
 
 function validateSetup(input: unknown): SetupInput {
@@ -469,7 +506,7 @@ export async function completeSetup(token: string, input: unknown) {
       'UPDATE installations SET setup_complete=1,setup_token_digest=NULL,setup_token_created_at=NULL,updated_at=? WHERE id=?',
     ).run(now, installationId);
     db.exec('COMMIT');
-    processSetupToken = null;
+    rmSync(setupTokenPath(), { force: true });
     console.info(JSON.stringify({ event: 'installation.setup.completed' }));
   } catch (error) {
     db.exec('ROLLBACK');

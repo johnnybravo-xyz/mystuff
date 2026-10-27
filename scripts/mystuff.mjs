@@ -3,6 +3,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { existsSync, createReadStream } from 'node:fs';
 import {
   access,
+  chmod,
   cp,
   mkdir,
   mkdtemp,
@@ -23,16 +24,17 @@ import { argon2id, hash } from 'argon2';
 
 const FORMAT = 'mystuff-backup';
 const FORMAT_VERSION = 1;
-const DATA_DIR = resolve(
-  process.env.ARCHIVE_DATA_DIR || process.env.MYSTUFF_DATA_DIR || '/data',
-);
+// Must match dataDirectory() in db/index.ts. The container sets
+// ARCHIVE_DATA_DIR=/data; a source checkout uses ./data.
+const DATA_DIR = resolve(process.env.ARCHIVE_DATA_DIR || 'data');
 const DATABASE = join(DATA_DIR, 'archive.sqlite');
+const SETUP_TOKEN = join(DATA_DIR, 'secrets', 'setup.token');
 
 function usage() {
   console.log(`My Stuff maintenance CLI
 
 Usage:
-  mystuff setup-token --rotate
+  mystuff setup-token [--rotate]
   mystuff password reset [--password-stdin]
   mystuff backup <file>
   mystuff export <file>
@@ -264,26 +266,58 @@ async function restoreArchive(file, replace) {
   }
 }
 
+function pendingSetup(db) {
+  const installation = db
+    .prepare(
+      "SELECT setup_complete,setup_token_digest FROM installations WHERE id='main'",
+    )
+    .get();
+  if (!installation)
+    fail(
+      'Installation record is missing. Start My Stuff once before printing the setup link.',
+    );
+  if (installation.setup_complete === 1)
+    fail('Setup is already complete and cannot be reopened.');
+  return installation;
+}
+
+function printSetupLink(token) {
+  console.log(`One-time setup token: ${token}`);
+  console.log(`Open /setup?token=${token} on this installation.`);
+}
+
+// Must match ensureSetupClaim in app/installation.ts: the server accepts the
+// token in secrets/setup.token only while its digest matches the database.
+async function showSetupToken() {
+  const db = openDatabase(DATABASE, { readOnly: true });
+  try {
+    const installation = pendingSetup(db);
+    const token = (await readFile(SETUP_TOKEN, 'utf8').catch(() => '')).trim();
+    const digest = createHash('sha256').update(token).digest('hex');
+    if (!token || digest !== installation.setup_token_digest)
+      fail(
+        'No current setup token. Run `mystuff setup-token --rotate` to create one.',
+      );
+    printSetupLink(token);
+  } finally {
+    db.close();
+  }
+}
+
 async function rotateSetupToken() {
   const db = openDatabase();
   try {
-    const installation = db
-      .prepare("SELECT setup_complete FROM installations WHERE id='main'")
-      .get();
-    if (!installation)
-      fail(
-        'Installation record is missing. Start My Stuff once before rotating setup.',
-      );
-    if (installation.setup_complete === 1)
-      fail('Setup is already complete and cannot be reopened.');
+    pendingSetup(db);
     const token = randomBytes(32).toString('base64url');
     const digest = createHash('sha256').update(token).digest('hex');
     const now = new Date().toISOString();
+    await mkdir(dirname(SETUP_TOKEN), { recursive: true });
+    await writeFile(SETUP_TOKEN, token, { mode: 0o600 });
+    await chmod(SETUP_TOKEN, 0o600);
     db.prepare(
       "UPDATE installations SET setup_token_digest=?,setup_token_created_at=?,updated_at=? WHERE id='main'",
     ).run(digest, now, now);
-    console.log(`One-time setup token: ${token}`);
-    console.log(`Open /setup?token=${token} on this installation.`);
+    printSetupLink(token);
   } finally {
     db.close();
   }
@@ -380,6 +414,7 @@ async function main() {
   const [command, subcommand, ...rest] = process.argv.slice(2);
   if (command === 'setup-token' && subcommand === '--rotate')
     return rotateSetupToken();
+  if (command === 'setup-token' && !subcommand) return showSetupToken();
   if (command === 'password' && subcommand === 'reset')
     return resetPassword(rest.includes('--password-stdin'));
   if (

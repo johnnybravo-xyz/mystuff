@@ -23,7 +23,7 @@ RUN npm ci --omit=dev --ignore-scripts \
     && npm rebuild argon2 \
     && npm cache clean --force
 COPY --from=build /app/dist/standalone ./
-COPY scripts/mystuff.mjs /app/scripts/mystuff.mjs
+COPY scripts/mystuff.mjs scripts/start.mjs /app/scripts/
 RUN chmod 0755 /app/scripts/mystuff.mjs \
     && ln -s /app/scripts/mystuff.mjs /usr/local/bin/mystuff \
     && mkdir /data \
@@ -33,4 +33,4 @@ EXPOSE 3000
 VOLUME ["/data"]
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD ["node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
-CMD ["node", "server.js"]
+CMD ["node", "scripts/start.mjs"]

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -44,9 +44,16 @@ async function installation(t) {
     else process.env.ARCHIVE_DATA_DIR = previous;
     await rm(directory, { recursive: true, force: true });
   });
-  const app = await import(pathToFileURL(join(directory, 'installation.mjs')).href);
+  const installationUrl = pathToFileURL(join(directory, 'installation.mjs')).href;
+  const app = await import(installationUrl);
   const database = await import(pathToFileURL(join(directory, 'db.mjs')).href);
-  return { ...app, testDb: database.getDb };
+  return {
+    ...app,
+    testDb: database.getDb,
+    tokenPath: join(data, 'secrets', 'setup.token'),
+    // A fresh module instance stands in for a container restart.
+    restart: () => import(`${installationUrl}?restart=${Date.now()}`),
+  };
 }
 
 test('fresh setup creates one administrator, stable profiles, settings and database sessions', async (t) => {
@@ -62,6 +69,8 @@ test('fresh setup creates one administrator, stable profiles, settings and datab
     app.completeSetup('wrong-token', {}),
     /invalid or has expired/,
   );
+  assert.equal(await app.verifySetupToken(token), true);
+  assert.equal(await app.verifySetupToken('wrong-token'), false);
   await app.completeSetup(token, {
     displayName: 'Alex',
     password: 'correct horse battery staple',
@@ -119,6 +128,8 @@ test('fresh setup creates one administrator, stable profiles, settings and datab
     /MYSTUFF_PUBLIC_URL/,
   );
   assert.equal(await app.ensureSetupClaim(), null);
+  assert.equal(await app.verifySetupToken(token), false);
+  await assert.rejects(stat(app.tokenPath), { code: 'ENOENT' });
   await assert.rejects(app.completeSetup(token, {}), /already complete/);
   assert.equal(await app.authenticateAdministrator('wrong password'), null);
 
@@ -137,4 +148,21 @@ test('login throttling persists attempts in SQLite', async (t) => {
   assert.equal(app.persistentLoginAttempt(1_000), 900);
   app.clearPersistentLoginAttempts();
   assert.equal(app.persistentLoginAttempt(1_000), 0);
+});
+
+test('setup token survives restarts and is stored only for pending setup', async (t) => {
+  const app = await installation(t);
+  const token = await app.ensureSetupClaim();
+  assert.equal(await app.ensureSetupClaim(), token);
+  assert.equal((await readFile(app.tokenPath, 'utf8')).trim(), token);
+  assert.equal((await stat(app.tokenPath)).mode & 0o777, 0o600);
+
+  const restarted = await app.restart();
+  assert.equal(await restarted.ensureSetupClaim(), token);
+
+  await writeFile(app.tokenPath, 'tampered');
+  const replaced = await restarted.ensureSetupClaim();
+  assert.notEqual(replaced, token);
+  assert.equal(await restarted.verifySetupToken(token), false);
+  assert.equal(await restarted.verifySetupToken(replaced), true);
 });

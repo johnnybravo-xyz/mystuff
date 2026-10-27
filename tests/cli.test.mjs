@@ -59,6 +59,10 @@ test('maintenance CLI rotates setup, backs up, verifies, restores and audits dat
   assert.equal(rotated.status, 0, rotated.stderr);
   const token = /One-time setup token: (\S+)/.exec(rotated.stdout)?.[1];
   assert.ok(token);
+  assert.equal((await readFile(join(source, 'secrets', 'setup.token'), 'utf8')).trim(), token);
+  const shown = run(source, ['setup-token']);
+  assert.equal(shown.status, 0, shown.stderr);
+  assert.match(shown.stdout, new RegExp(`setup\\?token=${token}`));
   let db = new DatabaseSync(join(source, 'archive.sqlite'));
   assert.equal(
     db.prepare("SELECT setup_token_digest FROM installations WHERE id='main'").get().setup_token_digest,
@@ -67,6 +71,7 @@ test('maintenance CLI rotates setup, backs up, verifies, restores and audits dat
   db.prepare("UPDATE installations SET setup_complete=1 WHERE id='main'").run();
   db.close();
   assert.equal(run(source, ['setup-token', '--rotate']).status, 1);
+  assert.equal(run(source, ['setup-token']).status, 1);
 
   const backedUp = run(source, ['backup', archive]);
   assert.equal(backedUp.status, 0, backedUp.stderr);

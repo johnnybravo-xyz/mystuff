@@ -2,6 +2,7 @@ import {
   completeSetup,
   ensureSetupClaim,
   setupRequired,
+  verifySetupToken,
 } from '@/app/installation';
 import { sameOriginMutation } from '@/app/auth';
 
@@ -28,12 +29,31 @@ export async function POST(request: Request) {
   if (request.headers.get('content-type')?.split(';')[0] !== 'application/json')
     return response({ error: 'Send setup details as JSON.' }, 415);
   try {
-    const body = (await request.json()) as { token?: unknown; setup?: unknown };
+    const body = (await request.json()) as {
+      token?: unknown;
+      setup?: unknown;
+      verifyOnly?: unknown;
+    };
     if (typeof body.token !== 'string' || body.token.length > 200)
       return response(
         { error: 'Enter the setup token from the container log.' },
         400,
       );
+    if (!(await setupRequired()))
+      return response({ error: 'Setup is already complete.' }, 409);
+    if (!(await verifySetupToken(body.token))) {
+      console.warn(
+        JSON.stringify({
+          event: 'installation.setup.rejected',
+          reason: 'token_mismatch',
+        }),
+      );
+      return response(
+        { error: 'This setup link is invalid or has expired.' },
+        401,
+      );
+    }
+    if (body.verifyOnly === true) return response({ ok: true });
     await completeSetup(body.token, body.setup);
     return response({ ok: true });
   } catch (error) {
