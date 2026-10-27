@@ -213,7 +213,7 @@ export async function fetchPublicResource(
                         maxHeaderSize: 32 * 1024,
                         headers: {
                             'User-Agent':
-                                'MyStuff/1.0 (personal product preview)',
+                                'MyStuff/0.1 (personal product preview)',
                             Accept:
                                 kind === 'html'
                                     ? 'text/html,application/xhtml+xml'

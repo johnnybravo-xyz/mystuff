@@ -1,8 +1,8 @@
 # Changelog
 
-All notable changes are recorded here. The project follows Semantic Versioning after 1.0.0.
+All notable changes are recorded here. The project follows Semantic Versioning. Before 1.0.0, minor releases may include breaking changes.
 
-## [1.0.0] - 2026-10-23
+## [0.1.0] - 2026-10-23
 
 ### Added
 

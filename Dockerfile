@@ -8,7 +8,7 @@ COPY . .
 RUN npm run build
 
 FROM node:24-bookworm-slim AS runtime
-ARG VERSION=1.0.0
+ARG VERSION=0.1.0
 LABEL org.opencontainers.image.title="My Stuff" \
       org.opencontainers.image.description="A private, self-hosted household inventory" \
       org.opencontainers.image.version=$VERSION \

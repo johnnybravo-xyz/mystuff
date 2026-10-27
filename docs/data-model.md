@@ -1,6 +1,6 @@
 # Data model and portable format
 
-SQLite stores installation settings, the administrator credential, sessions, profiles, inventory items, purchase facts, images, groups, outfits, preferences, import batches, shop inquiries, and persistent rate-limit state. JSON item records retain feature-specific fields without requiring a wide table. Account and installation IDs remain explicit for future evolution, while v1 supports one household.
+SQLite stores installation settings, the administrator credential, sessions, profiles, inventory items, purchase facts, images, groups, outfits, preferences, import batches, shop inquiries, and persistent rate-limit state. JSON item records retain feature-specific fields without requiring a wide table. Account and installation IDs remain explicit for future evolution, while v0.1 supports one household.
 
 Images are content-addressed by database rows and stored under `/data/images`. Writes use a temporary file followed by an atomic rename.
 

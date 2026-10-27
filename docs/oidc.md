@@ -1,6 +1,6 @@
 # Advanced SSO compatibility
 
-My Stuff v1 includes a narrow forward-auth compatibility mode. It is useful when an existing trusted service owns the browser session. It is not a general OpenID Connect client: My Stuff forwards the browser cookie to one configured validation endpoint and accepts a non-empty `x-auth-request-user` response header only from that server-to-server call.
+My Stuff v0.1 includes a narrow forward-auth compatibility mode. It is useful when an existing trusted service owns the browser session. It is not a general OpenID Connect client: My Stuff forwards the browser cookie to one configured validation endpoint and accepts a non-empty `x-auth-request-user` response header only from that server-to-server call.
 
 ```env
 ARCHIVE_AUTH_MODE=oidc
