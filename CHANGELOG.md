@@ -2,29 +2,17 @@
 
 All notable changes are recorded here. The project follows Semantic Versioning. Before 1.0.0, minor releases may include breaking changes.
 
-## [Unreleased]
+## [0.1.0] - 2026-10-27
 
-### Changed
+First release.
 
-- The setup link is printed when the container starts and stays valid across restarts until setup completes. `mystuff setup-token` prints it again; `--rotate` still replaces it.
-- The setup wizard checks the token on its first step and validates each step before continuing, including password confirmation, region values, profile labels, collections, and public shop prerequisites.
-- The setup wizard replaces the informational first-item and backup steps with a review step. Demo items moved to Features. The wizard no longer shows shell commands or environment variable names; an expired or missing setup link gets a plain-language explanation.
-- Bun 1.4.3 replaces npm for installing packages and running scripts (`bun.lock` replaces `package-lock.json`); Node 24 still runs the app.
-- `bun run dev` prints the setup link at startup, `bun run setup-link` prints it again, and the `mystuff` CLI defaults to `./data` outside the container, matching the server.
-- Headings use Fraunces and body text uses Nunito Sans for a softer look.
-
-## [0.1.0] - 2026-10-23
-
-### Added
-
-- Browser first-run setup with a one-time claim, Argon2id administrator password, database sessions, and persistent login throttling.
+- Browser setup wizard covering administrator, region, household profiles, collections, and features, with a final review. Each step is validated before continuing, and nothing is saved until the review is confirmed.
+- Setup link printed when the container starts and valid across restarts until setup completes. `mystuff setup-token` prints it again; `--rotate` replaces it.
+- Built-in Argon2id administrator login, database sessions, persistent login throttling, and CSRF checks.
 - Configurable branding, locale, time zone, base currency, household profiles, collections, feature flags, and shop identity.
-- Pantry and Pets collections, item-page Trash, public listing comments, and configurable asking currencies.
+- Fashion, Home, Technology, Watches, Vehicles, Spirits, Pantry, Pets, Kids, and Other collections, with groups, wishlist, Trash, and optional demo items.
+- Optional public shop with buyer comments and configurable asking currencies. Disabled by default; requires a public HTTPS origin and explicit exposure confirmation.
 - Ordered schema migrations with verified bounded pre-migration snapshots.
-- `mystuff` setup recovery, password reset, backup, verify, restore, portable export, and image audit commands.
-- Non-root image, image-based Compose, health/readiness checks, amd64/arm64 release workflow, and self-hosting documentation.
-
-### Changed
-
-- Public shop is disabled by default and requires a configured HTTPS origin plus explicit exposure confirmation.
-- Personal deployment and retailer-shortlist material was removed from the reusable project.
+- `mystuff` CLI for setup links, password reset, backup, verify, restore, portable export, and image audit.
+- Non-root image for linux/amd64 and linux/arm64, image-based Compose, health and readiness checks, and self-hosting documentation.
+- Development with Bun 1.4.3 for packages and scripts on Node 24. `bun run dev` prints the setup link at startup and shares `./data` with the CLI.
