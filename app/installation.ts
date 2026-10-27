@@ -11,6 +11,16 @@ import { hash, verify, argon2id } from 'argon2';
 import { dataDirectory, getDb } from '@/db';
 import { collections } from './wardrobe/model';
 import type { Collection } from './wardrobe/model';
+import {
+  administratorErrors,
+  collectionErrors,
+  featureErrors,
+  profileErrors,
+  regionErrors,
+  validCurrency,
+  validLocale,
+  validTimeZone,
+} from './setup/validation';
 
 export type Profile = { id: string; label: string; position: number };
 export type InstallationSettings = {
@@ -184,37 +194,6 @@ export function parseInstallationSettings(
   };
 }
 
-export function validLocale(value: unknown): value is string {
-  if (typeof value !== 'string' || value.length > 35) return false;
-  try {
-    return Intl.getCanonicalLocales(value).length === 1;
-  } catch {
-    return false;
-  }
-}
-
-export function validTimeZone(value: unknown): value is string {
-  if (typeof value !== 'string' || value.length > 80) return false;
-  try {
-    new Intl.DateTimeFormat('en', { timeZone: value }).format();
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-export function validCurrency(value: unknown): value is string {
-  if (typeof value !== 'string' || !/^[A-Z]{3}$/.test(value)) return false;
-  try {
-    new Intl.NumberFormat('en', { style: 'currency', currency: value }).format(
-      1,
-    );
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 export async function getInstallation() {
   const installation = installationRow();
   const settingsRow = getDb()
@@ -311,18 +290,16 @@ function validateSetup(input: unknown): SetupInput {
   if (!input || typeof input !== 'object')
     throw new Error('Setup details are required.');
   const value = input as Partial<SetupInput>;
-  const displayName = cleanText(value.displayName, '', 80);
-  const password = typeof value.password === 'string' ? value.password : '';
-  const title = cleanText(value.title, '', 80);
-  const subtitle = cleanText(value.subtitle, '', 160);
+  const text = (field: unknown) => (typeof field === 'string' ? field : '');
+  const displayName = text(value.displayName).trim();
+  const password = text(value.password);
+  const title = text(value.title).trim();
+  const subtitle = text(value.subtitle).trim();
+  const locale = text(value.locale);
+  const timeZone = text(value.timeZone);
+  const baseCurrency = text(value.baseCurrency);
   const profiles = Array.isArray(value.profiles)
-    ? [
-        ...new Set(
-          value.profiles
-            .map((label) => cleanText(label, '', 60))
-            .filter(Boolean),
-        ),
-      ]
+    ? value.profiles.map((label) => text(label).trim()).filter(Boolean)
     : [];
   const enabledCollections = Array.isArray(value.enabledCollections)
     ? [...new Set(value.enabledCollections)].filter(
@@ -331,36 +308,37 @@ function validateSetup(input: unknown): SetupInput {
           setupCollectionIds.includes(entry as Exclude<Collection, 'all'>),
       )
     : [];
-  if (!displayName) throw new Error('Enter an administrator name.');
-  if (password.length < 12 || password.length > 1024)
-    throw new Error('Use a password between 12 and 1,024 characters.');
-  if (!title || !subtitle)
-    throw new Error('Enter an installation title and subtitle.');
-  if (!validLocale(value.locale)) throw new Error('Choose a valid locale.');
-  if (!validTimeZone(value.timeZone))
-    throw new Error('Choose a valid time zone.');
-  if (!validCurrency(value.baseCurrency))
-    throw new Error('Choose a valid currency code.');
-  if (!profiles.length || profiles.length > 20)
-    throw new Error('Add between one and 20 household profiles.');
-  if (!enabledCollections.length)
-    throw new Error('Enable at least one collection.');
+  const features = {
+    wishlist: value.features?.wishlist !== false,
+    outfits: value.features?.outfits !== false,
+    shop: value.features?.shop === true,
+  };
+  const shopExposureConfirmed = value.shopExposureConfirmed === true;
+  const errors = {
+    ...administratorErrors({ displayName, password, title, subtitle }),
+    ...regionErrors({ locale, timeZone, baseCurrency }),
+    ...profileErrors(profiles),
+    ...collectionErrors(enabledCollections),
+    ...featureErrors({
+      shop: features.shop,
+      shopExposureConfirmed,
+      shopOrigin: publicShopOrigin(),
+    }),
+  };
+  const firstError = Object.values(errors)[0];
+  if (firstError) throw new Error(firstError);
   return {
     displayName,
     password,
     title,
     subtitle,
-    locale: value.locale,
-    timeZone: value.timeZone,
-    baseCurrency: value.baseCurrency,
+    locale,
+    timeZone,
+    baseCurrency,
     profiles,
     enabledCollections,
-    features: {
-      wishlist: value.features?.wishlist !== false,
-      outfits: value.features?.outfits !== false,
-      shop: value.features?.shop === true,
-    },
-    shopExposureConfirmed: value.shopExposureConfirmed === true,
+    features,
+    shopExposureConfirmed,
     demoData: value.demoData === true,
   };
 }
@@ -371,13 +349,6 @@ export async function completeSetup(token: string, input: unknown) {
   if (!row.setup_token_digest || digest(token) !== row.setup_token_digest)
     throw new Error('This setup link is invalid or has expired.');
   const value = validateSetup(input);
-  if (
-    value.features.shop &&
-    (value.shopExposureConfirmed !== true || !publicShopOrigin())
-  )
-    throw new Error(
-      'Set MYSTUFF_PUBLIC_URL to the public HTTPS origin and confirm shop exposure first.',
-    );
   const now = new Date().toISOString();
   const setupProfiles = value.profiles.map((label, position) => ({
     id: randomUUID(),

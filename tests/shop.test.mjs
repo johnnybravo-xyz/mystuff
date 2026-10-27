@@ -112,6 +112,7 @@ async function application(t, seed) {
     ['db/platform-migration.ts', 'platform-migration'],
     ['db/index.ts', 'db'],
     ['app/wardrobe/model.ts', 'model'],
+    ['app/setup/validation.ts', 'validation'],
     ['app/wardrobe/item-price.ts', 'item-price'],
     ['app/wardrobe/shop-model.ts', 'shop-model'],
     ['app/auth.ts', 'auth'],
@@ -130,6 +131,7 @@ async function application(t, seed) {
       ['@/app/installation', './installation.mjs'],
       ['argon2', import.meta.resolve('argon2')],
       ['./wardrobe/model', './model.mjs'],
+      ['./setup/validation', './validation.mjs'],
       ['@/db', './db.mjs'],
       ...[
         'model',

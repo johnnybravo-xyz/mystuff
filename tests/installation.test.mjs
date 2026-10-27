@@ -19,6 +19,7 @@ async function installation(t) {
     ['db/platform-migration.ts', 'platform-migration'],
     ['db/index.ts', 'db'],
     ['app/wardrobe/model.ts', 'model'],
+    ['app/setup/validation.ts', 'validation'],
     ['app/installation.ts', 'installation'],
   ];
   for (const [source, name] of modules) {
@@ -27,6 +28,7 @@ async function installation(t) {
       ['argon2', import.meta.resolve('argon2')],
       ['@/db', './db.mjs'],
       ['./wardrobe/model', './model.mjs'],
+      ['./setup/validation', './validation.mjs'],
       ['./initial-schema', './initial-schema.mjs'],
       ['./shop-migration', './shop-migration.mjs'],
       ['./group-migration', './group-migration.mjs'],
@@ -150,6 +152,19 @@ test('login throttling persists attempts in SQLite', async (t) => {
   assert.equal(app.persistentLoginAttempt(1_000), 0);
 });
 
+const validSetup = {
+  displayName: 'Alex',
+  password: 'correct horse battery staple',
+  title: 'Things',
+  subtitle: 'Collected with care.',
+  locale: 'en-GB',
+  timeZone: 'Europe/London',
+  baseCurrency: 'GBP',
+  profiles: ['Me'],
+  enabledCollections: ['home'],
+  features: { wishlist: true, outfits: true, shop: false },
+};
+
 test('setup token survives restarts and is stored only for pending setup', async (t) => {
   const app = await installation(t);
   const token = await app.ensureSetupClaim();
@@ -165,4 +180,22 @@ test('setup token survives restarts and is stored only for pending setup', async
   assert.notEqual(replaced, token);
   assert.equal(await restarted.verifySetupToken(token), false);
   assert.equal(await restarted.verifySetupToken(replaced), true);
+});
+
+test('setup rejects invalid details with field-specific messages', async (t) => {
+  const app = await installation(t);
+  const token = await app.ensureSetupClaim();
+  const cases = [
+    [{ password: 'short' }, /between 12 and 1,024/],
+    [{ timeZone: 'Mars/Olympus' }, /valid time zone/],
+    [{ baseCurrency: 'XYZ1' }, /valid currency/],
+    [{ profiles: ['Me', 'me'] }, /must be different/],
+    [{ enabledCollections: [] }, /at least one collection/],
+    [{ features: { shop: true }, shopExposureConfirmed: true }, /MYSTUFF_PUBLIC_URL/],
+  ];
+  for (const [change, message] of cases)
+    await assert.rejects(app.completeSetup(token, Object.assign({}, validSetup, change)), message);
+  assert.equal((await app.getInstallation()).setupComplete, false);
+  await app.completeSetup(token, validSetup);
+  assert.equal((await app.getInstallation()).setupComplete, true);
 });

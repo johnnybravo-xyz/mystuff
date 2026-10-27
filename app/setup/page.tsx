@@ -1,5 +1,9 @@
 import { redirect } from 'next/navigation';
-import { ensureSetupClaim, setupRequired } from '@/app/installation';
+import {
+  ensureSetupClaim,
+  publicShopOrigin,
+  setupRequired,
+} from '@/app/installation';
 import { SetupWizard } from './setup-wizard';
 
 export const dynamic = 'force-dynamic';
@@ -14,5 +18,5 @@ export default async function SetupPage({
   await ensureSetupClaim();
   const query = await searchParams;
   const token = typeof query.token === 'string' ? query.token : '';
-  return <SetupWizard initialToken={token} />;
+  return <SetupWizard initialToken={token} shopOrigin={publicShopOrigin()} />;
 }
