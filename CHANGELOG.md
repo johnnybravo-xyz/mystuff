@@ -2,6 +2,11 @@
 
 All notable changes are recorded here. The project follows Semantic Versioning. Before 1.0.0, minor releases may include breaking changes.
 
+## Unreleased
+
+- Added a source-complete post-build `test` container stage that restores files
+  pruned by the build while retaining production artifacts for isolated checks.
+
 ## [0.1.0] - 2026-10-27
 
 First release.

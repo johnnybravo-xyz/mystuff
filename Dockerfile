@@ -11,6 +11,9 @@ FROM dependencies AS build
 COPY . .
 RUN bun run build
 
+FROM build AS test
+COPY . .
+
 FROM node:24-bookworm-slim AS production-dependencies
 COPY --from=bun /usr/local/bin/bun /usr/local/bin/bun
 WORKDIR /app
