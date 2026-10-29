@@ -5,7 +5,7 @@ All notable changes are recorded here. The project follows Semantic Versioning. 
 ## Unreleased
 
 - Added a source-complete post-build `test` container stage that restores files
-  pruned by the build while retaining production artifacts for isolated checks.
+  pruned by the build for unprivileged checks while retaining production artifacts.
 
 ## [0.1.0] - 2026-10-27
 

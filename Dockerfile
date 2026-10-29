@@ -9,10 +9,10 @@ RUN bun install --frozen-lockfile
 
 FROM dependencies AS build
 COPY . .
-RUN bun run build
+RUN bun run build && chmod -R a+rX dist
 
 FROM build AS test
-COPY . .
+COPY --chown=node:node . .
 
 FROM node:24-bookworm-slim AS production-dependencies
 COPY --from=bun /usr/local/bin/bun /usr/local/bin/bun
